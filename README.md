@@ -36,8 +36,6 @@
                 </form>
             </div>
         </div>
-        
-        <!-- Rodapé na Tela de Login -->
         <footer class="w-full py-8 text-center">
             <p class="text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em]">
                 © 2025 – Criado por <span class="text-indigo-500">CLX</span>
@@ -71,7 +69,6 @@
         </header>
 
         <main class="max-w-7xl mx-auto px-6 py-10 flex-grow w-full">
-            <!-- Ferramentas Master/Diretor -->
             <div id="management-tools" class="hidden mb-10 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm">
                 <div class="flex flex-col md:flex-row gap-4 items-center">
                     <div class="flex-1 w-full relative">
@@ -96,12 +93,9 @@
                 </button>
             </div>
 
-            <div id="tasks-container" class="grid grid-cols-1 gap-6">
-                <!-- Conteúdo Dinâmico -->
-            </div>
+            <div id="tasks-container" class="grid grid-cols-1 gap-6"></div>
         </main>
 
-        <!-- Rodapé na Interface Principal -->
         <footer class="w-full py-8 mt-auto border-t border-slate-200">
             <div class="max-w-7xl mx-auto px-6 flex flex-col items-center justify-center text-center">
                 <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
@@ -111,7 +105,7 @@
         </footer>
     </div>
 
-    <!-- Modais omitidos para brevidade, mas mantidos no código final funcional -->
+    <!-- Modal de Demanda (Nova e Edição) -->
     <div id="modal-task" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 modal-backdrop">
         <div class="bg-white rounded-[3.5rem] w-full max-w-xl p-12 shadow-2xl relative">
             <h2 id="modal-task-title" class="font-black text-slate-900 uppercase text-xs tracking-[0.3em] mb-10">Nova Demanda</h2>
@@ -133,6 +127,7 @@
         </div>
     </div>
 
+    <!-- Outros modais mantidos... -->
     <div id="modal-admin" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
         <div class="bg-white rounded-[3rem] w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center p-8 bg-slate-50 border-b">
@@ -164,7 +159,6 @@
         </div>
     </div>
 
-    <!-- Firebase e Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { 
@@ -213,7 +207,6 @@
             });
         }
 
-        // LOGIN
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
             const loginInput = document.getElementById('login-user').value.trim();
@@ -305,7 +298,12 @@
                         <div class="flex-1">
                             <div class="flex justify-between items-start mb-3">
                                 <span class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full uppercase tracking-wider">${t.category} • PARA: ${t.assignedTo}</span>
-                                ${canEdit(t) ? `<button onclick="deleteT('${t.id}')" class="text-slate-300 hover:text-red-500 transition-colors p-1"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
+                                <div class="flex gap-2">
+                                    ${canEdit(t) ? `
+                                        <button onclick="editTask('${t.id}')" class="text-slate-300 hover:text-indigo-500 transition-colors p-1"><i data-lucide="pencil" class="w-5 h-5"></i></button>
+                                        <button onclick="deleteT('${t.id}')" class="text-slate-300 hover:text-red-500 transition-colors p-1"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                                    ` : ''}
+                                </div>
                             </div>
                             <h3 class="font-black text-xl uppercase tracking-tight mb-1 ${t.status === 'concluída' ? 'line-through text-slate-400' : 'text-slate-900'}">${t.title}</h3>
                             <p class="text-slate-500 text-sm mb-6 leading-relaxed">${t.description || 'Sem descrição.'}</p>
@@ -334,6 +332,23 @@
             return currentUser.role === 'Diretor' && t.category.toLowerCase() === currentUser.category.toLowerCase();
         }
 
+        // FUNÇÃO DE EDIÇÃO
+        window.editTask = (id) => {
+            const task = allTasks.find(t => t.id === id);
+            if (!task) return;
+
+            document.getElementById('modal-task-title').textContent = "Editar Demanda";
+            document.getElementById('task-id').value = task.id;
+            document.getElementById('task-title').value = task.title;
+            document.getElementById('task-desc').value = task.description || '';
+            document.getElementById('task-category').value = task.category;
+            
+            updateTaskAssignedSelect();
+            document.getElementById('task-assigned').value = task.assignedTo;
+            
+            document.getElementById('modal-task').classList.remove('hidden');
+        };
+
         window.toggleStatus = async (id, s) => {
             const nextStatus = s === 'concluída' ? 'pendente' : 'concluída';
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { status: nextStatus });
@@ -351,6 +366,7 @@
         };
 
         document.getElementById('btn-new-task').onclick = () => {
+            document.getElementById('modal-task-title').textContent = "Nova Demanda";
             document.getElementById('task-form').reset();
             document.getElementById('task-id').value = '';
             const catS = document.getElementById('task-category');
@@ -363,14 +379,26 @@
 
         document.getElementById('task-form').onsubmit = async (e) => {
             e.preventDefault();
+            const id = document.getElementById('task-id').value;
             const data = {
                 title: document.getElementById('task-title').value.trim(),
                 description: document.getElementById('task-desc').value.trim(),
                 category: document.getElementById('task-category').value,
-                assignedTo: document.getElementById('task-assigned').value,
-                status: 'pendente', createdAt: serverTimestamp(), comments: []
+                assignedTo: document.getElementById('task-assigned').value
             };
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), data);
+
+            if (id) {
+                // UPDATE
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), data);
+            } else {
+                // CREATE
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), {
+                    ...data,
+                    status: 'pendente',
+                    createdAt: serverTimestamp(),
+                    comments: []
+                });
+            }
             closeModals();
         };
 
@@ -390,6 +418,7 @@
         }
         document.getElementById('task-category').onchange = updateTaskAssignedSelect;
         document.getElementById('btn-admin-panel').onclick = () => document.getElementById('modal-admin').classList.remove('hidden');
+        
         document.getElementById('admin-user-form').onsubmit = async (e) => {
             e.preventDefault();
             const login = document.getElementById('new-user-login').value.trim();
