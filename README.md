@@ -32,10 +32,12 @@
                     <input type="text" id="login-user" required placeholder="UTILIZADOR" class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500 font-bold uppercase text-white">
                     <input type="password" id="login-pass" required placeholder="PALAVRA-PASSE" class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-white">
                     <div id="login-error" class="hidden p-3 bg-red-500/10 text-red-400 text-xs font-bold rounded-xl text-center border border-red-500/20"></div>
-                    <button type="submit" id="btn-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-lg uppercase text-xs tracking-widest">Aceder à Plataforma</button>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-lg uppercase text-xs tracking-widest">Aceder à Plataforma</button>
                 </form>
             </div>
         </div>
+        
+        <!-- Rodapé na Tela de Login -->
         <footer class="w-full py-8 text-center">
             <p class="text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em]">
                 © 2025 – Criado por <span class="text-indigo-500">CLX</span>
@@ -69,6 +71,7 @@
         </header>
 
         <main class="max-w-7xl mx-auto px-6 py-10 flex-grow w-full">
+            <!-- Ferramentas Master/Diretor -->
             <div id="management-tools" class="hidden mb-10 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm">
                 <div class="flex flex-col md:flex-row gap-4 items-center">
                     <div class="flex-1 w-full relative">
@@ -93,11 +96,22 @@
                 </button>
             </div>
 
-            <div id="tasks-container" class="grid grid-cols-1 gap-6"></div>
+            <div id="tasks-container" class="grid grid-cols-1 gap-6">
+                <!-- Conteúdo Dinâmico -->
+            </div>
         </main>
+
+        <!-- Rodapé na Interface Principal -->
+        <footer class="w-full py-8 mt-auto border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-6 flex flex-col items-center justify-center text-center">
+                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">
+                    © 2025 – Criado por <span class="text-indigo-600">CLX</span>
+                </p>
+            </div>
+        </footer>
     </div>
 
-    <!-- Modal de Demanda -->
+    <!-- Modais omitidos para brevidade, mas mantidos no código final funcional -->
     <div id="modal-task" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 modal-backdrop">
         <div class="bg-white rounded-[3.5rem] w-full max-w-xl p-12 shadow-2xl relative">
             <h2 id="modal-task-title" class="font-black text-slate-900 uppercase text-xs tracking-[0.3em] mb-10">Nova Demanda</h2>
@@ -119,7 +133,6 @@
         </div>
     </div>
 
-    <!-- Modal Admin -->
     <div id="modal-admin" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
         <div class="bg-white rounded-[3rem] w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center p-8 bg-slate-50 border-b">
@@ -141,12 +154,17 @@
                             <button type="submit" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Criar Utilizador</button>
                         </form>
                     </div>
+                    <div class="p-8 bg-indigo-50/50 border border-indigo-100 rounded-[2.5rem]">
+                        <textarea id="import-bulk-text" placeholder="IMPORTAR (NOME	SENHA	SETOR	CARGO)" class="w-full h-32 p-4 bg-white border rounded-2xl font-mono text-[10px] mb-4"></textarea>
+                        <button onclick="processBulkImport()" class="w-full bg-indigo-600 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Importar em Lote</button>
+                    </div>
                 </div>
                 <div id="admin-users-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
             </div>
         </div>
     </div>
 
+    <!-- Firebase e Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { 
@@ -157,18 +175,11 @@
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
-        // Seguranças para o Firebase
-        let firebaseConfig, appId, auth, db;
-        
-        try {
-            firebaseConfig = JSON.parse(__firebase_config);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'demandas-v1';
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Erro na configuração do Firebase:", e);
-        }
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'demandas-v1';
 
         const CATEGORIES = ["Meio Ambiente", "Linguagens", "Comunicações", "Edição de Vídeo", "Cultura", "Secretaria", "Esportes", "Presidência", "Informações", "Designer"];
         const ROLES = ["Colaborador", "Estagiário", "Diretor"];
@@ -178,26 +189,14 @@
         let allTasks = [];
         let allUsers = [];
         let filteredUserLogin = null;
-        let isAuthReady = false;
 
-        window.addEventListener('load', () => { 
-            if (auth) initAuth(); 
-            populateSelects(); 
-        });
+        window.addEventListener('load', () => { initAuth(); populateSelects(); });
 
         async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                onAuthStateChanged(auth, (user) => {
-                    isAuthReady = !!user;
-                    console.log("Autenticação pronta:", isAuthReady);
-                });
-            } catch (err) {
-                console.error("Erro ao autenticar:", err);
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
             }
         }
 
@@ -205,62 +204,37 @@
             const catSelects = [document.getElementById('task-category'), document.getElementById('new-user-category')];
             const roleSelects = [document.getElementById('new-user-role')];
             catSelects.forEach(s => {
-                if(!s) return;
                 s.innerHTML = '';
                 CATEGORIES.forEach(c => s.innerHTML += `<option value="${c}">${c.toUpperCase()}</option>`);
             });
             roleSelects.forEach(s => {
-                if(!s) return;
                 s.innerHTML = '';
                 ROLES.forEach(r => s.innerHTML += `<option value="${r}">${r.toUpperCase()}</option>`);
             });
         }
 
+        // LOGIN
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
-            if (!isAuthReady) {
-                showLoginError('Ligação ao servidor ainda não estabelecida. Aguarde...');
-                return;
-            }
-
             const loginInput = document.getElementById('login-user').value.trim();
             const passInput = document.getElementById('login-pass').value;
-            const btn = document.getElementById('btn-login-submit');
-            
-            btn.disabled = true;
-            btn.textContent = "VERIFICANDO...";
-            
             const errBox = document.getElementById('login-error');
             errBox.classList.add('hidden');
 
-            // Login Master (sempre funciona se os dados baterem)
             if (loginInput.toUpperCase() === MASTER_CONFIG.login.toUpperCase() && passInput === MASTER_CONFIG.pass) {
                 loginSuccess({ login: MASTER_CONFIG.login.toUpperCase(), category: 'MASTER', role: 'Administrador', isMaster: true });
                 return;
             }
 
             try {
-                // Caminho rigoroso do Firestore conforme Regra 1
                 const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', loginInput.toLowerCase());
                 const userDoc = await getDoc(userRef);
-                
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    if (data.pass === passInput) {
-                        loginSuccess({ ...data, isMaster: false });
-                    } else {
-                        showLoginError('Senha incorreta.');
-                    }
-                } else {
-                    showLoginError('Utilizador não registado.');
-                }
-            } catch (err) { 
-                console.error("Erro no login:", err);
-                showLoginError('Erro de permissão ou rede. Verifique o console.'); 
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "ACEDER À PLATAFORMA";
-            }
+                    if (data.pass === passInput) loginSuccess({ ...data, isMaster: false });
+                    else showLoginError('Senha incorreta.');
+                } else showLoginError('Utilizador não registado.');
+            } catch (err) { showLoginError('Erro de ligação ao servidor.'); }
         };
 
         function showLoginError(msg) {
@@ -292,28 +266,23 @@
         window.handleLogout = () => location.reload();
 
         function startListeners() {
-            // Regra 1: Caminho absoluto
-            const tasksRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
-
-            onSnapshot(tasksRef, (snap) => {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), (snap) => {
                 allTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 renderTasks();
-            }, (err) => console.error("Erro listener tasks:", err));
+            });
 
-            onSnapshot(usersRef, (snap) => {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snap) => {
                 allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderAdminUsers();
                 updateTaskAssignedSelect();
-            }, (err) => console.error("Erro listener users:", err));
+            });
         }
 
         function renderTasks() {
             const container = document.getElementById('tasks-container');
             if (!currentUser) return;
             let filtered = [...allTasks];
-            
             if (filteredUserLogin) {
                 filtered = filtered.filter(t => t.assignedTo.toLowerCase() === filteredUserLogin.toLowerCase());
             } else {
@@ -323,12 +292,10 @@
                 else if (currentUser.role === 'Diretor') { filtered = filtered.filter(t => t.category.toLowerCase() === userCat); } 
                 else { filtered = filtered.filter(t => t.assignedTo.toLowerCase() === userLogin); }
             }
-
             if (filtered.length === 0) {
                 container.innerHTML = `<div class="p-20 text-center opacity-30 font-black uppercase tracking-widest text-xs">Nenhuma demanda encontrada</div>`;
                 return;
             }
-
             container.innerHTML = filtered.map(t => `
                 <div class="bg-white border rounded-[2.5rem] p-8 shadow-sm transition-all hover:shadow-md ${t.status === 'concluída' ? 'opacity-60' : ''}">
                     <div class="flex gap-6">
@@ -338,12 +305,7 @@
                         <div class="flex-1">
                             <div class="flex justify-between items-start mb-3">
                                 <span class="text-[9px] font-black bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full uppercase tracking-wider">${t.category} • PARA: ${t.assignedTo}</span>
-                                <div class="flex gap-2">
-                                    ${canEdit(t) ? `
-                                        <button onclick="editTask('${t.id}')" class="text-slate-300 hover:text-indigo-500 transition-colors p-1"><i data-lucide="pencil" class="w-5 h-5"></i></button>
-                                        <button onclick="deleteT('${t.id}')" class="text-slate-300 hover:text-red-500 transition-colors p-1"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                                    ` : ''}
-                                </div>
+                                ${canEdit(t) ? `<button onclick="deleteT('${t.id}')" class="text-slate-300 hover:text-red-500 transition-colors p-1"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
                             </div>
                             <h3 class="font-black text-xl uppercase tracking-tight mb-1 ${t.status === 'concluída' ? 'line-through text-slate-400' : 'text-slate-900'}">${t.title}</h3>
                             <p class="text-slate-500 text-sm mb-6 leading-relaxed">${t.description || 'Sem descrição.'}</p>
@@ -372,19 +334,6 @@
             return currentUser.role === 'Diretor' && t.category.toLowerCase() === currentUser.category.toLowerCase();
         }
 
-        window.editTask = (id) => {
-            const task = allTasks.find(t => t.id === id);
-            if (!task) return;
-            document.getElementById('modal-task-title').textContent = "Editar Demanda";
-            document.getElementById('task-id').value = task.id;
-            document.getElementById('task-title').value = task.title;
-            document.getElementById('task-desc').value = task.description || '';
-            document.getElementById('task-category').value = task.category;
-            updateTaskAssignedSelect();
-            document.getElementById('task-assigned').value = task.assignedTo;
-            document.getElementById('modal-task').classList.remove('hidden');
-        };
-
         window.toggleStatus = async (id, s) => {
             const nextStatus = s === 'concluída' ? 'pendente' : 'concluída';
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { status: nextStatus });
@@ -402,7 +351,6 @@
         };
 
         document.getElementById('btn-new-task').onclick = () => {
-            document.getElementById('modal-task-title').textContent = "Nova Demanda";
             document.getElementById('task-form').reset();
             document.getElementById('task-id').value = '';
             const catS = document.getElementById('task-category');
@@ -415,24 +363,14 @@
 
         document.getElementById('task-form').onsubmit = async (e) => {
             e.preventDefault();
-            const id = document.getElementById('task-id').value;
             const data = {
                 title: document.getElementById('task-title').value.trim(),
                 description: document.getElementById('task-desc').value.trim(),
                 category: document.getElementById('task-category').value,
-                assignedTo: document.getElementById('task-assigned').value
+                assignedTo: document.getElementById('task-assigned').value,
+                status: 'pendente', createdAt: serverTimestamp(), comments: []
             };
-
-            if (id) {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), data);
-            } else {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), {
-                    ...data,
-                    status: 'pendente',
-                    createdAt: serverTimestamp(),
-                    comments: []
-                });
-            }
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), data);
             closeModals();
         };
 
@@ -440,7 +378,6 @@
 
         function updateTaskAssignedSelect() {
             const select = document.getElementById('task-assigned');
-            if(!select) return;
             const cat = document.getElementById('task-category').value.toLowerCase();
             let filtered = allUsers.filter(u => u.login.toUpperCase() !== MASTER_CONFIG.login.toUpperCase());
             if (!(currentUser.isMaster || currentUser.category.toLowerCase() === 'presidência')) {
@@ -451,26 +388,20 @@
                 select.innerHTML += `<option value="${u.login}">${u.login.toUpperCase()} (${u.role})</option>`;
             });
         }
-
         document.getElementById('task-category').onchange = updateTaskAssignedSelect;
         document.getElementById('btn-admin-panel').onclick = () => document.getElementById('modal-admin').classList.remove('hidden');
-        
         document.getElementById('admin-user-form').onsubmit = async (e) => {
             e.preventDefault();
             const login = document.getElementById('new-user-login').value.trim();
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', login.toLowerCase()), { 
-                login: login, 
-                pass: document.getElementById('new-user-pass').value.trim(), 
-                category: document.getElementById('new-user-category').value, 
-                role: document.getElementById('new-user-role').value 
+                login: login, pass: document.getElementById('new-user-pass').value.trim(), 
+                category: document.getElementById('new-user-category').value, role: document.getElementById('new-user-role').value 
             });
             document.getElementById('admin-user-form').reset();
         };
 
         function renderAdminUsers() {
-            const list = document.getElementById('admin-users-list');
-            if(!list) return;
-            list.innerHTML = allUsers.filter(u => u.login.toUpperCase() !== MASTER_CONFIG.login.toUpperCase()).map(u => `
+            document.getElementById('admin-users-list').innerHTML = allUsers.filter(u => u.login.toUpperCase() !== MASTER_CONFIG.login.toUpperCase()).map(u => `
                 <div class="p-5 border rounded-[2rem] bg-white flex justify-between items-center shadow-sm">
                     <div><p class="font-black text-xs uppercase text-slate-900">${u.login}</p><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${u.category} • ${u.role}</p></div>
                     <button onclick="delUser('${u.id}')" class="text-slate-200 hover:text-red-500 transition-colors"><i data-lucide="user-minus" class="w-5 h-5"></i></button>
@@ -480,21 +411,31 @@
 
         window.delUser = async (id) => { if(confirm("Remover utilizador?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id)); };
         
+        window.processBulkImport = async () => {
+            const text = document.getElementById('import-bulk-text').value.trim();
+            if (!text) return;
+            const batch = writeBatch(db);
+            text.split('\n').forEach(line => {
+                const p = line.split(/\t/).map(s => s.trim());
+                if (p.length >= 2) batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'users', p[0].toLowerCase()), { login: p[0], pass: p[1].replace(/\//g, ''), category: p[2] || 'Secretaria', role: p[3] || 'Colaborador' });
+            });
+            await batch.commit();
+            document.getElementById('import-bulk-text').value = '';
+            alert("Sucesso!");
+        };
+
         const si = document.getElementById('search-user-input');
         const sr = document.getElementById('search-results');
-        if(si) {
-            si.oninput = () => {
-                const val = si.value.trim().toLowerCase();
-                if (!val) { sr.classList.add('hidden'); return; }
-                let m = allUsers.filter(u => u.login.toLowerCase().includes(val) && u.login.toUpperCase() !== MASTER_CONFIG.login.toUpperCase());
-                if (!currentUser.isMaster && currentUser.category.toLowerCase() !== 'presidência') m = m.filter(u => u.category.toLowerCase() === currentUser.category.toLowerCase());
-                if (m.length > 0) {
-                    sr.innerHTML = m.map(u => `<button onclick="applyF('${u.login}')" class="w-full text-left px-6 py-4 hover:bg-slate-50 border-b transition-colors"><div class="flex justify-between items-center"><span class="font-black text-xs uppercase">${u.login}</span><span class="text-[8px] font-bold text-slate-400 uppercase">${u.role}</span></div></button>`).join('');
-                    sr.classList.remove('hidden');
-                } else { sr.innerHTML = `<div class="p-6 text-center text-[10px] font-bold text-slate-400">NADA ENCONTRADO</div>`; sr.classList.remove('hidden'); }
-            };
-        }
-
+        si.oninput = () => {
+            const val = si.value.trim().toLowerCase();
+            if (!val) { sr.classList.add('hidden'); return; }
+            let m = allUsers.filter(u => u.login.toLowerCase().includes(val) && u.login.toUpperCase() !== MASTER_CONFIG.login.toUpperCase());
+            if (!currentUser.isMaster && currentUser.category.toLowerCase() !== 'presidência') m = m.filter(u => u.category.toLowerCase() === currentUser.category.toLowerCase());
+            if (m.length > 0) {
+                sr.innerHTML = m.map(u => `<button onclick="applyF('${u.login}')" class="w-full text-left px-6 py-4 hover:bg-slate-50 border-b transition-colors"><div class="flex justify-between items-center"><span class="font-black text-xs uppercase">${u.login}</span><span class="text-[8px] font-bold text-slate-400 uppercase">${u.role}</span></div></button>`).join('');
+                sr.classList.remove('hidden');
+            } else { sr.innerHTML = `<div class="p-6 text-center text-[10px] font-bold text-slate-400">NADA ENCONTRADO</div>`; sr.classList.remove('hidden'); }
+        };
         window.applyF = (l) => { filteredUserLogin = l; si.value = ''; sr.classList.add('hidden'); document.getElementById('filter-user-name').textContent = l; document.getElementById('selected-filter-badge').classList.remove('hidden'); renderTasks(); };
         window.clearUserFilter = () => { filteredUserLogin = null; document.getElementById('selected-filter-badge').classList.add('hidden'); renderTasks(); };
     </script>
